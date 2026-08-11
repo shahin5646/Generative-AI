@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LangChain Models — Learning &amp; Revision Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0E17;
+    --surface:#141926;
+    --surface-2:#1B2233;
+    --border:#262E42;
+    --text:#E7E9F3;
+    --text-muted:#9096AC;
+    --text-dim:#565D74;
+    --gold:#F2C14E;
+    --eco:#A78BFA;
+    --chat:#FB923C;
+    --embed:#2DD4BF;
+    --radius:14px;
+    --mono:'JetBrains Mono', monospace;
+    --sans:'Manrope', sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+  }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+  ::selection{background:var(--gold);color:#0B0E17;}
+
+  /* background texture */
+  .grid-bg{
+    position:fixed;inset:0;z-index:-1;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size:48px 48px;
+    mask-image:radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
+  }
+
+  .wrap{max-width:960px;margin:0 auto;padding:0 24px;}
+
+  /* ---------- NAV ---------- */
+  .topnav{
+    position:sticky;top:0;z-index:50;
+    background:rgba(11,14,23,0.85);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+  }
+  .topnav-inner{
+    max-width:960px;margin:0 auto;padding:14px 24px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+  }
+  .brand{
+    font-family:var(--mono);font-weight:700;font-size:14px;letter-spacing:0.02em;
+    display:flex;align-items:center;gap:8px;color:var(--text);text-decoration:none;
+  }
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);}
+  .nav-links{display:flex;gap:4px;font-family:var(--mono);font-size:12.5px;}
+  .nav-links a{
+    padding:7px 12px;border-radius:8px;color:var(--text-muted);text-decoration:none;
+    border:1px solid transparent;transition:all .2s ease;
+  }
+  .nav-links a:hover{color:var(--text);border-color:var(--border);}
+  .nav-links a.active-eco{color:var(--eco);border-color:rgba(167,139,250,0.3);background:rgba(167,139,250,0.08);}
+  .nav-links a.active-chat{color:var(--chat);border-color:rgba(251,146,60,0.3);background:rgba(251,146,60,0.08);}
+  .nav-links a.active-embed{color:var(--embed);border-color:rgba(45,212,191,0.3);background:rgba(45,212,191,0.08);}
+  @media (max-width:640px){ .nav-links{display:none;} }
+
+  /* ---------- HERO ---------- */
+  .hero{padding:88px 0 56px;}
+  .eyebrow{
+    font-family:var(--mono);font-size:12.5px;color:var(--gold);
+    display:inline-flex;align-items:center;gap:8px;margin-bottom:22px;
+  }
+  .eyebrow::before{content:"$";opacity:0.6;}
+  h1.title{
+    font-family:var(--mono);font-weight:800;
+    font-size:clamp(30px, 5vw, 48px);
+    line-height:1.15;letter-spacing:-0.02em;
+    max-width:820px;margin-bottom:20px;
+  }
+  h1.title .hl{color:var(--gold);}
+  .subtitle{
+    color:var(--text-muted);font-size:16.5px;max-width:600px;margin-bottom:36px;
+  }
+  .terminal{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    overflow:hidden;
+    box-shadow:0 20px 60px -20px rgba(0,0,0,0.6);
+    max-width:640px;
+  }
+  .terminal-bar{
+    display:flex;align-items:center;gap:6px;
+    padding:10px 14px;background:var(--surface-2);
+    border-bottom:1px solid var(--border);
+  }
+  .terminal-bar span{width:10px;height:10px;border-radius:50%;background:#3A4257;}
+  .terminal-bar .path{margin-left:10px;font-family:var(--mono);font-size:11.5px;color:var(--text-dim);}
+  .terminal-body{padding:20px 22px;font-family:var(--mono);font-size:13.5px;}
+  .terminal-body .line{margin-bottom:8px;color:var(--text-muted);}
+  .terminal-body .line .prompt{color:var(--embed);margin-right:8px;}
+  .terminal-body .out{color:var(--text-dim);margin-bottom:14px;padding-left:20px;}
+  .cursor{display:inline-block;width:7px;height:14px;background:var(--gold);animation:blink 1s step-end infinite;vertical-align:middle;margin-left:2px;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+  .stats{display:flex;gap:28px;margin-top:40px;flex-wrap:wrap;}
+  .stat{font-family:var(--mono);}
+  .stat b{display:block;font-size:26px;color:var(--text);}
+  .stat span{font-size:12px;color:var(--text-dim);}
+
+  /* ---------- SECTION HEADERS ---------- */
+  .category{padding:64px 0 8px;}
+  .cat-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px;flex-wrap:wrap;}
+  .cat-num{font-family:var(--mono);font-size:13px;color:var(--text-dim);}
+  .cat-title{font-family:var(--mono);font-weight:700;font-size:26px;letter-spacing:-0.01em;}
+  .cat-eco .cat-title{color:var(--eco);}
+  .cat-chat .cat-title{color:var(--chat);}
+  .cat-embed .cat-title{color:var(--embed);}
+  .cat-desc{color:var(--text-muted);font-size:14.5px;max-width:620px;margin-bottom:44px;}
+  .cat-path{font-family:var(--mono);font-size:11.5px;color:var(--text-dim);margin-bottom:6px;}
+
+  /* ---------- CHAIN OF CARDS ---------- */
+  .chain{position:relative;}
+  .chain::before{
+    content:"";position:absolute;left:15px;top:8px;bottom:8px;width:1.5px;
+    background:repeating-linear-gradient(to bottom, var(--chain-color,var(--border)) 0 6px, transparent 6px 12px);
+  }
+  .cat-eco .chain{--chain-color:rgba(167,139,250,0.35);}
+  .cat-chat .chain{--chain-color:rgba(251,146,60,0.35);}
+  .cat-embed .chain{--chain-color:rgba(45,212,191,0.35);}
+
+  .card{
+    position:relative;margin-left:38px;margin-bottom:22px;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .card::before{
+    content:"";position:absolute;left:-30px;top:22px;width:9px;height:9px;
+    border-radius:50%;background:var(--node-color,var(--gold));
+    box-shadow:0 0 0 4px var(--bg), 0 0 10px var(--node-color,var(--gold));
+  }
+  .cat-eco .card{--node-color:#A78BFA;}
+  .cat-chat .card{--node-color:#FB923C;}
+  .cat-embed .card{--node-color:#2DD4BF;}
+
+  .card-q{
+    padding:18px 22px;border-bottom:1px solid var(--border);
+    display:flex;gap:12px;align-items:flex-start;
+  }
+  .card-q .tag{
+    font-family:var(--mono);font-size:10.5px;font-weight:700;
+    padding:3px 8px;border-radius:6px;white-space:nowrap;margin-top:2px;
+    background:rgba(242,193,78,0.12);color:var(--gold);border:1px solid rgba(242,193,78,0.25);
+  }
+  .card-q .qtext{font-size:15px;color:var(--text);font-weight:500;}
+  .card-q .qtext .muted{color:var(--text-dim);font-weight:400;font-size:13px;display:block;margin-top:4px;font-family:var(--mono);}
+
+  .card-a{padding:18px 22px;}
+  .card-a p{font-size:14.5px;color:var(--text-muted);margin-bottom:12px;}
+  .card-a p:last-child{margin-bottom:0;}
+  .card-a strong{color:var(--text);}
+  .card-a code.inline{
+    font-family:var(--mono);background:var(--surface-2);padding:2px 6px;border-radius:5px;
+    font-size:13px;color:var(--gold);border:1px solid var(--border);
+  }
+
+  .bugfix{
+    display:flex;gap:10px;padding:10px 12px;margin:12px 0;
+    background:rgba(251,113,133,0.06);border:1px solid rgba(251,113,133,0.2);
+    border-radius:9px;font-size:13.5px;
+  }
+  .bugfix .icon{color:#FB7185;font-family:var(--mono);font-weight:700;font-size:12px;flex-shrink:0;}
+  .fixed{
+    display:flex;gap:10px;padding:10px 12px;margin:12px 0;
+    background:rgba(45,212,191,0.06);border:1px solid rgba(45,212,191,0.2);
+    border-radius:9px;font-size:13.5px;
+  }
+  .fixed .icon{color:var(--embed);font-family:var(--mono);font-weight:700;font-size:12px;flex-shrink:0;}
+
+  pre{
+    background:#0D111B;border:1px solid var(--border);border-radius:10px;
+    padding:16px 18px;overflow-x:auto;margin:12px 0;
+  }
+  pre code{
+    font-family:var(--mono);font-size:12.8px;line-height:1.65;color:#D5D9EC;
+    white-space:pre;
+  }
+  .kw{color:#C792EA;}
+  .str{color:#C3E88D;}
+  .cmt{color:#565D74;font-style:italic;}
+  .fn{color:#82AAFF;}
+  .num{color:#F78C6C;}
+
+  table.ref{width:100%;border-collapse:collapse;font-size:13.5px;margin:12px 0;}
+  table.ref th{
+    text-align:left;font-family:var(--mono);font-size:11px;color:var(--text-dim);
+    padding:8px 10px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.04em;
+  }
+  table.ref td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text-muted);}
+  table.ref td:first-child{color:var(--text);font-family:var(--mono);font-size:12.5px;}
+
+  /* ---------- CHEATSHEET ---------- */
+  .cheatsheet{padding:70px 0 40px;}
+  .cheat-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px;}
+  @media (max-width:700px){.cheat-grid{grid-template-columns:1fr;}}
+  .cheat-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px 22px;
+  }
+  .cheat-card h3{font-family:var(--mono);font-size:14px;color:var(--gold);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .cheat-card h3::before{content:"›";color:var(--text-dim);}
+  .cheat-card ul{list-style:none;}
+  .cheat-card li{
+    font-family:var(--mono);font-size:12.5px;color:var(--text-muted);
+    padding:6px 0;border-bottom:1px dashed var(--border);
+  }
+  .cheat-card li:last-child{border-bottom:none;}
+  .cheat-card li code{color:var(--text);}
+
+  footer{
+    padding:50px 0 60px;text-align:center;color:var(--text-dim);
+    font-family:var(--mono);font-size:12px;border-top:1px solid var(--border);margin-top:40px;
+  }
+  footer .dot{color:var(--gold);}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<nav class="topnav">
+  <div class="topnav-inner">
+    <a href="#top" class="brand"><span class="dot"></span> langchain/models — notes</a>
+    <div class="nav-links" id="navLinks">
+      <a href="#ecosystem" data-cat="eco">01 Ecosystem</a>
+      <a href="#chatmodels" data-cat="chat">02 Chat Models</a>
+      <a href="#embeddings" data-cat="embed">03 Embeddings</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero" id="top">
+    <div class="eyebrow">cd ~/genai/langchain/learning-journey</div>
+    <h1 class="title">All about <span class="hl">LangChain Models</span> — the questions, the bugs, the fixes.</h1>
+    <p class="subtitle">A running log of everything covered while learning LangChain: the LLM ecosystem, chat models across four providers, and embeddings — kept for quick revision, not for reading once and forgetting.</p>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span></span><span></span><span></span>
+        <span class="path">01-models</span>
+      </div>
+      <div class="terminal-body">
+        <div class="line"><span class="prompt">&gt;</span>topics_covered.list()</div>
+        <div class="out">
+          ["LLM Ecosystem", "Closed vs Open Models",<br>
+          "API vs Local", "Chat Models (Anthropic, OpenRouter,<br>
+          HF Endpoint, HF Local)", "Embeddings (OpenAI, HF Local)",<br>
+          "Cosine Similarity Search"]
+        </div>
+        <div class="line"><span class="prompt">&gt;</span>status<span class="cursor"></span></div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b>3</b><span>categories</span></div>
+      <div class="stat"><b>25+</b><span>questions answered</span></div>
+      <div class="stat"><b>10+</b><span>bugs fixed</span></div>
+      <div class="stat"><b>4</b><span>model providers used</span></div>
+    </div>
+  </header>
+
+  <!-- =========================================== -->
+  <!-- 01 ECOSYSTEM -->
+  <!-- =========================================== -->
+  <section class="category cat-eco" id="ecosystem">
+    <div class="cat-path">~/genai/01-ecosystem</div>
+    <div class="cat-head">
+      <span class="cat-num">01</span>
+      <span class="cat-title">LLM Ecosystem &amp; Model Landscape</span>
+    </div>
+    <p class="cat-desc">The big picture before touching any code: who builds models, closed vs. open, API vs. local, and how the pieces fit into a real application stack.</p>
+
+    <div class="chain">
+
+      <div class="card">
+        <div class="card-q">
+          <span class="tag">LECTURE</span>
+          <div class="qtext">Topic 1 lecture PDF — teach me the LLM ecosystem &amp; model landscape.</div>
+        </div>
+        <div class="card-a">
+          <p><strong>Core idea:</strong> The GenAI ecosystem = model providers + cloud platforms + open-source communities + developer tools. LLMs are becoming a core layer of modern software, not a standalone product.</p>
+          <table class="ref">
+            <tr><th>Category</th><th>What it means</th><th>2026 examples</th></tr>
+            <tr><td>Closed models</td><td>API-only access, weights hidden</td><td>GPT‑5.5/5.6, Claude Sonnet/Opus 5, Gemini 3.1</td></tr>
+            <tr><td>Open models</td><td>Weights downloadable, self-hosted</td><td>Llama 4, Mistral, DeepSeek V4, GLM‑5.2</td></tr>
+          </table>
+          <p><strong>The LLM stack:</strong> <code class="inline">UI → Backend → LLM/Model API → Retrieval/DB → External Tools</code>. The LLM is one replaceable layer, not the whole app.</p>
+          <div class="fixed"><span class="icon">UPDATE</span><span>Lecture's model list was 2024-era. Real 2026 lineup and the OpenAI‑style tiers were swapped in — model names age fast, the categories don't.</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q">
+          <span class="tag">LECTURE</span>
+          <div class="qtext">Handwritten notes — "What are Models" in LangChain.</div>
+        </div>
+        <div class="card-a">
+          <p>The <strong>Model component</strong> in LangChain abstracts the complexity of working directly with different LLMs, chat models, and embedding models — one uniform interface for all of them. This is what makes it possible to build apps around AI-generated text, similarity search, and RAG without rewriting code for every provider.</p>
+          <pre><code>Models
+├── Language Models
+│   ├── LLMs
+│   └── Chat Models
+└── Embedding Models</code></pre>
+          <p>The core distinction between the two branches, in one line each:</p>
+          <table class="ref">
+            <tr><th>Branch</th><th>Input → Output</th><th>Example</th></tr>
+            <tr><td>Language Models</td><td>text → text</td><td>"Capital of India?" → "Delhi"</td></tr>
+            <tr><td>Embedding Models</td><td>text → vector</td><td>"Capital of India?" → [0.02, -0.41, ...]</td></tr>
+          </table>
+          <p>One generates language, the other generates a numeric fingerprint of meaning used for search/retrieval — this is the split your whole notes site is organized around (Chat Models = category 02, Embeddings = category 03).</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q">
+          <span class="tag">LECTURE</span>
+          <div class="qtext">Handwritten notes — Open Source Models, deeper dive.</div>
+        </div>
+        <div class="card-a">
+          <p>Open-source language models are freely available models that can be <strong>downloaded, modified, fine-tuned, and deployed</strong> without restriction from a central provider — unlike closed models (GPT, Claude, Gemini), which lock you into the provider's infrastructure.</p>
+          <table class="ref">
+            <tr><th>Feature</th><th>Open-Source</th><th>Closed-Source</th></tr>
+            <tr><td>Cost</td><td>Free to use, no API cost</td><td>Paid, per-token usage</td></tr>
+            <tr><td>Control</td><td>Modify, fine-tune, deploy anywhere</td><td>Locked to provider's infra</td></tr>
+            <tr><td>Data privacy</td><td>Runs locally, nothing leaves your servers</td><td>Queries sent to provider's servers</td></tr>
+            <tr><td>Customization</td><td>Full fine-tuning access</td><td>Little to none, in most cases</td></tr>
+            <tr><td>Deployment</td><td>On-premise or your own cloud</td><td>Must use vendor's API</td></tr>
+          </table>
+          <p><strong>Two ways to actually use an open-source model:</strong> through a <strong>Hugging Face Inference API</strong> (hosted, no local setup) or by <strong>running it locally</strong> (full control, needs your own compute) — this exact fork is what the hands-on Chat Models section below walks through in code.</p>
+          <div class="bugfix"><span class="icon">DISADVANTAGES</span><span>High hardware requirements for large models · setup complexity (PyTorch, CUDA, transformers all needed) · most open models lack RLHF, so weaker instruction-following · limited multimodal support (no native image/audio/video like GPT-4V).</span></div>
+          <div class="fixed"><span class="icon">2026 UPDATE</span><span>The notes' "famous open source models" list (LLaMA-2, Mixtral-8x7B, Falcon, BLOOM, GPT-J, StableLM) is 2024-era. See Category 01's provider table above for the current 2026 lineup — Llama 4, Mistral, DeepSeek V4, GLM-5.2, Gemma 4 — same categories, newer generation.</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q">
+          <span class="tag">DECISION</span>
+          <div class="qtext">How does a developer actually choose which LLM to use?</div>
+        </div>
+        <div class="card-a">
+          <p>Weigh: capability, latency, cost, context window, privacy requirements, deployment options. It's a <strong>systems design decision</strong>, not just "which model is smartest."</p>
+          <p><strong>Rule of thumb:</strong> default to API models for speed of shipping. Switch to self-hosted/open only when privacy (data can't leave your servers) or extreme scale forces it.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================================== -->
+  <!-- 02 CHAT MODELS -->
+  <!-- =========================================== -->
+  <section class="category cat-chat" id="chatmodels">
+    <div class="cat-path">~/genai/02-chat-models</div>
+    <div class="cat-head">
+      <span class="cat-num">02</span>
+      <span class="cat-title">Chat Models — Setup, Providers &amp; Debugging</span>
+    </div>
+    <p class="cat-desc">Environment setup, then hands-on with Anthropic, OpenRouter, and Hugging Face (both hosted and fully local) — plus every error hit along the way.</p>
+
+    <div class="chain">
+
+      <div class="card">
+        <div class="card-q">
+          <span class="tag">LECTURE</span>
+          <div class="qtext">Handwritten notes — LLMs vs Chat Models, what's actually different?</div>
+        </div>
+        <div class="card-a">
+          <p><strong>LLMs</strong> — general-purpose models built for raw text generation. Take a plain string in, return a plain string out. Traditionally the older style, not used much anymore on their own.</p>
+          <p><strong>Chat Models</strong> — language models specialized for conversational tasks. Take a <em>sequence of messages</em> as input (system / user / assistant roles) and return a structured chat message as output. The newer default, and what nearly everything in this notes site actually uses (<code class="inline">ChatAnthropic</code>, <code class="inline">ChatHuggingFace</code>, <code class="inline">ChatOpenRouter</code>).</p>
+          <table class="ref">
+            <tr><th>Feature</th><th>LLMs (Base)</th><th>Chat Models (Instruction-Tuned)</th></tr>
+            <tr><td>Purpose</td><td>Free-form text generation</td><td>Optimized for multi-turn conversation</td></tr>
+            <tr><td>Training data</td><td>General text corpora (books, articles)</td><td>Fine-tuned on chat/dialogue datasets</td></tr>
+            <tr><td>Memory &amp; context</td><td>No built-in memory</td><td>Supports structured conversation history</td></tr>
+            <tr><td>Role awareness</td><td>No concept of "user" vs "assistant"</td><td>Understands system / user / assistant roles</td></tr>
+            <tr><td>Use cases</td><td>Text gen, summarization, translation</td><td>Chatbots, virtual assistants, coding agents</td></tr>
+          </table>
+          <div class="fixed"><span class="icon">MY NOTE</span><span>In practice today, chat models are used far more than raw LLMs — conversational chatbots, coding agents, and similar tools all run on chat models. Base-LLM support inside LangChain itself keeps shrinking over time.</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q">
+          <span class="tag">PARAMETER</span>
+          <div class="qtext">What does <code class="inline">temperature</code> actually control?</div>
+        </div>
+        <div class="card-a">
+          <p><code class="inline">temperature</code> controls the <strong>randomness</strong> of a model's output — how creative vs. deterministic responses are. Lower = more predictable and repeatable, higher = more varied and surprising.</p>
+          <table class="ref">
+            <tr><th>Use case</th><th>Recommended temperature</th></tr>
+            <tr><td>Factual answers (math, code, facts)</td><td>0.0 – 0.3</td></tr>
+            <tr><td>Balanced response (general QA, explanations)</td><td>0.5 – 0.7</td></tr>
+            <tr><td>Creative writing, storytelling, jokes</td><td>0.9 – 1.2</td></tr>
+            <tr><td>Maximum randomness (wild brainstorming)</td><td>1.5+</td></tr>
+          </table>
+          <p>Ties directly back to the TinyLlama bug fixed below — <code class="inline">temperature=0.5</code> only has an effect when <code class="inline">do_sample=True</code> is also set; otherwise the model defaults to greedy (fully deterministic) decoding and silently ignores it.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">SETUP</span><div class="qtext">Write down the LangChain project setup steps exactly.</div></div>
+        <div class="card-a">
+          <pre><code><span class="cmt"># 1. Create + open project</span>
+mkdir my-project &amp;&amp; cd my-project
+code .
+
+<span class="cmt"># 2. Create + activate venv</span>
+python -m venv venv
+venv\Scripts\Activate      <span class="cmt"># Windows</span>
+source venv/bin/activate   <span class="cmt"># macOS/Linux</span>
+
+<span class="cmt"># 3. Install from requirements.txt</span>
+pip install -r requirements.txt</code></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">REFERENCE</span><div class="qtext">Full requirements.txt for LangChain + all providers.</div></div>
+        <div class="card-a">
+          <pre><code><span class="cmt"># LangChain Core</span>
+langchain
+langchain-core
+
+<span class="cmt"># OpenAI</span>
+langchain-openai
+openai
+
+<span class="cmt"># Anthropic</span>
+langchain-anthropic
+
+<span class="cmt"># Google Gemini</span>
+langchain-google-genai
+google-generativeai
+
+<span class="cmt"># OpenRouter</span>
+langchain-openrouter
+
+<span class="cmt"># Hugging Face</span>
+langchain-huggingface
+transformers
+huggingface-hub
+sentence-transformers
+torch
+
+<span class="cmt"># Env vars + utils</span>
+python-dotenv
+numpy
+scikit-learn</code></pre>
+          <p><strong>Standard 2026 practice:</strong> don't hand-write this long-term — generate it from your real environment:</p>
+          <pre><code><span class="fn">pip freeze</span> | Set-Content -Encoding utf8 requirements.txt</code></pre>
+          <div class="bugfix"><span class="icon">GOTCHA</span><span>Plain <code class="inline">pip freeze &gt; requirements.txt</code> in PowerShell can corrupt the file (wrong encoding). Always pipe through <code class="inline">Set-Content -Encoding utf8</code> instead.</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">DECISION</span><div class="qtext">pip install -r requirements.txt or uv?</div></div>
+        <div class="card-a">
+          <p><strong>uv</strong> is faster (Rust-based, 10–100x quicker dependency resolution) and drop-in compatible with existing requirements.txt files. <strong>pip</strong> is already built-in, matches what most tutorials show.</p>
+          <p><strong>Verdict while learning:</strong> stick with plain <code class="inline">pip</code> — one less variable while following a tutorial. Switch to <code class="inline">uv</code> once comfortable and iterating on your own projects often.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">TOOLING</span><div class="qtext">Terminal autocomplete in VS Code — free 2026 options?</div></div>
+        <div class="card-a">
+          <table class="ref">
+            <tr><th>Tool</th><th>Type</th><th>Notes</th></tr>
+            <tr><td>terminal.integrated.suggest.enabled</td><td>Built-in</td><td>Free, zero setup, basic path/command completion</td></tr>
+            <tr><td>Shell Integration: Env Reporting</td><td>Built-in</td><td>Pairs with the above for smarter suggestions</td></tr>
+            <tr><td>GitHub Copilot (free tier)</td><td>AI</td><td># natural-language → command</td></tr>
+            <tr><td>Continue.dev + Ollama</td><td>AI, local</td><td>$0 forever, fully private</td></tr>
+            <tr><td>autocomplete.sh</td><td>Shell plugin</td><td>Open-source, provider-agnostic</td></tr>
+          </table>
+          <p>Turned on: <code class="inline">terminal.integrated.suggest.enabled</code> + <code class="inline">Shell Integration: Environment Reporting</code>.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">VERSIONING</span><div class="qtext">Tutor uses LangChain 0.3.18, I have 1.3.14 — will it break my code?</div></div>
+        <div class="card-a">
+          <p>LangChain 1.0 (Oct 2025) was a real restructuring, not just a version bump. Two kinds of breakage:</p>
+          <table class="ref">
+            <tr><th>Type</th><th>What happens</th><th>Fix</th></tr>
+            <tr><td>Import moved</td><td>Legacy chains/retrievers moved to a separate package</td><td>Swap import prefix to <code class="inline">langchain_classic</code></td></tr>
+            <tr><td>Pattern redesigned</td><td>e.g. agents: <code class="inline">initialize_agent</code> → <code class="inline">create_agent</code></td><td>Learn the 1.0-native replacement, not a patch</td></tr>
+          </table>
+          <p><strong>For basic model usage</strong> (<code class="inline">ChatOpenAI</code>, <code class="inline">.invoke()</code>, message objects) — stable across both versions, low friction expected.</p>
+          <div class="fixed"><span class="icon">WORKFLOW</span><span>Run tutor's code → hit an error → paste it in chat → get told whether it's a simple import fix or a real pattern change → fix → understand <em>why</em> it changed, not just patch and move on.</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">CODE</span><div class="qtext">Anthropic model call — is this 2026 standard?</div></div>
+        <div class="card-a">
+          <div class="bugfix"><span class="icon">DATED</span><span>Original used <code class="inline">claude-3-5-sonnet-20241022</code> — an Oct 2024 snapshot. Still runs, but not what you'd use today.</span></div>
+          <pre><code><span class="kw">from</span> langchain_anthropic <span class="kw">import</span> ChatAnthropic
+<span class="kw">from</span> dotenv <span class="kw">import</span> load_dotenv
+
+load_dotenv()
+
+model = ChatAnthropic(model=<span class="str">'claude-sonnet-5'</span>)
+result = model.invoke(<span class="str">"write a poem about Love"</span>)
+
+<span class="fn">print</span>(result.content)</code></pre>
+          <p><strong>Optional pattern for the future</strong> — pull the model name from env instead of hardcoding, so a provider's new release only means editing <code class="inline">.env</code>:</p>
+          <pre><code>model = ChatAnthropic(model=os.getenv(<span class="str">"ANTHROPIC_MODEL"</span>, <span class="str">"claude-sonnet-5"</span>))</code></pre>
+          <p><code class="inline">os.getenv("NAME", default)</code> → looks for env var <code class="inline">NAME</code>; if missing, silently falls back to <code class="inline">default</code>. Not a special LangChain keyword — just Python.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">ENV FILE</span><div class="qtext">.env values — with quotes or without? Spaces around =?</div></div>
+        <div class="card-a">
+          <pre><code><span class="cmt"># Correct:</span>
+OPENAI_API_KEY=sk-abc123xyz
+
+<span class="cmt"># Avoid:</span>
+OPENAI_API_KEY = "sk-abc123xyz"   <span class="cmt">← spaces + quotes, both risky</span></code></pre>
+          <p>No quotes, no spaces around <code class="inline">=</code>. python-dotenv strips quotes if present, but unquoted is the universal convention.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">BUG</span><div class="qtext">ChatOpenRouter — ValidationError: 'reasoning' should be specified explicitly.</div></div>
+        <div class="card-a">
+          <div class="bugfix"><span class="icon">BUG</span><span><code class="inline">reasoning</code> was nested inside <code class="inline">model_kwargs</code>, but the class treats it as a first-class named param.</span></div>
+          <pre><code><span class="cmt"># Before (broken)</span>
+model = ChatOpenRouter(
+    model=<span class="str">"nvidia/nemotron-3-super-120b-a12b:free"</span>,
+    model_kwargs={<span class="str">"reasoning"</span>: {<span class="str">"enabled"</span>: <span class="kw">True</span>}}
+)
+
+<span class="cmt"># After (fixed)</span>
+model = ChatOpenRouter(
+    model=<span class="str">"nvidia/nemotron-3-super-120b-a12b:free"</span>,
+    reasoning={<span class="str">"enabled"</span>: <span class="kw">True</span>}
+)</code></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">BUG</span><div class="qtext">HF Endpoint — ValueError: you must provide an api_key...</div></div>
+        <div class="card-a">
+          <div class="bugfix"><span class="icon">BUG</span><span>.env had <code class="inline">HUGGINGFACEHUB_ACCESS_TOKEN</code> — but huggingface_hub auto-detects only <code class="inline">HF_TOKEN</code> or <code class="inline">HUGGINGFACEHUB_API_TOKEN</code>.</span></div>
+          <pre><code><span class="cmt"># .env — rename to:</span>
+HF_TOKEN=hf_yourTokenHere</code></pre>
+          <p>Alternative: keep the old name and pass it explicitly via <code class="inline">huggingfacehub_api_token=os.getenv("HUGGINGFACEHUB_ACCESS_TOKEN")</code>. Renaming is simpler since <code class="inline">HF_TOKEN</code> works everywhere in the HF ecosystem automatically.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">BUG</span><div class="qtext">HuggingFacePipeline local (TinyLlama) — "is that correct way in 2026?"</div></div>
+        <div class="card-a">
+          <p>Four issues in one snippet:</p>
+          <div class="bugfix"><span class="icon">1</span><span><code class="inline">temparature</code> → typo for <code class="inline">temperature</code></span></div>
+          <div class="bugfix"><span class="icon">2</span><span><code class="inline">max_new_token</code> → should be <code class="inline">max_new_tokens</code> (plural)</span></div>
+          <div class="bugfix"><span class="icon">3</span><span><code class="inline">ChatHuggingFace(llm='llm')</code> → passed the <em>string</em> "llm" instead of the variable <code class="inline">llm</code></span></div>
+          <div class="bugfix"><span class="icon">4</span><span>Missing <code class="inline">torch</code> — local pipelines run inference on your own machine, need a real ML backend installed</span></div>
+          <pre><code><span class="kw">from</span> langchain_huggingface <span class="kw">import</span> ChatHuggingFace, HuggingFacePipeline
+
+llm = HuggingFacePipeline.from_model_id(
+    model_id=<span class="str">'TinyLlama/TinyLlama-1.1B-Chat-v1.0'</span>,
+    task=<span class="str">'text-generation'</span>,
+    pipeline_kwargs=<span class="fn">dict</span>(
+        temperature=<span class="num">0.5</span>,
+        max_new_tokens=<span class="num">100</span>,
+        do_sample=<span class="kw">True</span>,
+    )
+)
+
+model = ChatHuggingFace(llm=llm)
+result = model.invoke(<span class="str">'What is the capital of Bangladesh?'</span>)
+<span class="fn">print</span>(result.content)</code></pre>
+          <p><strong>Key distinction:</strong> <code class="inline">HuggingFaceEndpoint</code> = hosted API call. <code class="inline">HuggingFacePipeline.from_model_id</code> = downloads real weights, runs locally on CPU/GPU — the full API-vs-local trade-off from Topic 1, hands-on.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">BUG</span><div class="qtext">HF_HOME cache path set but not working — FileNotFoundError: 'D:\\'</div></div>
+        <div class="card-a">
+          <div class="bugfix"><span class="icon">BUG</span><span>Two separate mistakes stacked: (1) <code class="inline">os.environ['HF_HOME']</code> set <em>after</em> the import — some libs read cache paths at import time. (2) The <code class="inline">D:</code> drive doesn't exist on this machine.</span></div>
+          <pre><code><span class="kw">import</span> os
+os.environ[<span class="str">'HF_HOME'</span>] = <span class="str">'E:/huggingface_cache'</span>   <span class="cmt"># set BEFORE importing</span>
+
+<span class="kw">from</span> langchain_huggingface <span class="kw">import</span> ChatHuggingFace, HuggingFacePipeline</code></pre>
+          <p><strong>Rule:</strong> always set environment variables before importing anything that might depend on them, and confirm the target drive actually exists first.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">SUCCESS</span><div class="qtext">TinyLlama ran end-to-end — output had transformers warnings + chat tags.</div></div>
+        <div class="card-a">
+          <pre><code>&lt;|user|&gt;
+What is the capital of Bangladesh?&lt;/s&gt;
+&lt;|assistant|&gt;
+The capital of Bangladesh is Dhaka.</code></pre>
+          <p>The 3 <code class="inline">[transformers]</code> warnings (generation_config deprecation, max_new_tokens vs max_length, tokenizer cleanup) are all cosmetic — script completed successfully.</p>
+          <p><strong>Worth noticing:</strong> <code class="inline">&lt;|user|&gt;</code> / <code class="inline">&lt;|assistant|&gt;</code> / <code class="inline">&lt;/s&gt;</code> is TinyLlama's <strong>chat template</strong> — the exact format it was trained to expect. <code class="inline">ChatHuggingFace</code> wraps plain strings into this automatically.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">SYSTEM</span><div class="qtext">RAM usage looks high (72%) — Task Manager screenshots. What to do?</div></div>
+        <div class="card-a">
+          <p>Biggest consumers weren't the model — it was <strong>20+ open browser tabs</strong> across two separate browsers (Brave + Chrome) running alongside VS Code.</p>
+          <table class="ref">
+            <tr><th>Fix</th><th>Impact</th></tr>
+            <tr><td>Close duplicate browser (keep one)</td><td>~500MB–1GB</td></tr>
+            <tr><td>Bookmark + close idle tabs</td><td>Largest single win</td></tr>
+            <tr><td>Enable browser "Memory Saver"</td><td>Frees idle-tab RAM automatically</td></tr>
+            <tr><td>Restart VS Code occasionally</td><td>Clears extension memory creep</td></tr>
+          </table>
+          <p>72% usage with a loaded local LLM + full dev setup on 16GB RAM isn't actually alarming on its own — only a concern if the system visibly lags.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================================== -->
+  <!-- 03 EMBEDDINGS -->
+  <!-- =========================================== -->
+  <section class="category cat-embed" id="embeddings">
+    <div class="cat-path">~/genai/03-embeddings</div>
+    <div class="cat-head">
+      <span class="cat-num">03</span>
+      <span class="cat-title">Embeddings — Vectors, Similarity &amp; a Real Mini-Project</span>
+    </div>
+    <p class="cat-desc">Turning text into vectors, comparing OpenAI vs local Hugging Face embeddings, and building a working document-search project by hand.</p>
+
+    <div class="chain">
+
+      <div class="card">
+        <div class="card-q"><span class="tag">CODE</span><div class="qtext">OpenAIEmbeddings with dimensions=32 — 2026 standard?</div></div>
+        <div class="card-a">
+          <p><strong>Model choice was correct</strong> — <code class="inline">text-embedding-3-large</code> is still OpenAI's current premium embedding model in 2026, no deprecation. Syntax was correct too.</p>
+          <pre><code><span class="kw">from</span> langchain_openai <span class="kw">import</span> OpenAIEmbeddings
+
+embedding = OpenAIEmbeddings(model=<span class="str">'text-embedding-3-large'</span>, dimensions=<span class="num">32</span>)
+result = embedding.embed_query(<span class="str">'Dhaka is the most crowded city in Bangladesh'</span>)</code></pre>
+          <div class="bugfix"><span class="icon">NOTE</span><span>Default is 3072 dims. <code class="inline">dimensions=32</code> is a ~96x compression — far more aggressive than typical (256–1024 is the real-world sweet spot). Fine for experimenting, not for production retrieval quality.</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">BUG</span><div class="qtext">embed_documents() — output looked wrong / sentences ran together.</div></div>
+        <div class="card-a">
+          <div class="bugfix"><span class="icon">BUG 1</span><span>Missing commas between list items → Python auto-concatenated all three sentences into <em>one</em> merged string.</span></div>
+          <div class="bugfix"><span class="icon">BUG 2</span><span>Called <code class="inline">embed_documents()</code> with a hardcoded string instead of the actual <code class="inline">documents</code> list variable — this method needs a <em>list</em>, not a single string.</span></div>
+          <pre><code>documents = [
+    <span class="str">'Dhaka is the Capital of Bangladesh'</span>,
+    <span class="str">'Sylhet is one of the most beautiful city in Bangladesh'</span>,
+    <span class="str">'This is a beautiful Place to visit'</span>
+]
+
+result = embedding.embed_documents(documents)   <span class="cmt"># pass the list itself</span></code></pre>
+          <table class="ref">
+            <tr><th>Method</th><th>Input</th><th>Use for</th></tr>
+            <tr><td>embed_query()</td><td>single string</td><td>the user's incoming search query</td></tr>
+            <tr><td>embed_documents()</td><td>list of strings</td><td>your knowledge base / corpus, embedded once</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">CODE</span><div class="qtext">HuggingFaceEmbeddings (local, MiniLM) — 2026?</div></div>
+        <div class="card-a">
+          <p>Correct and still a common default in 2026 for lightweight local RAG prototypes — small, fast, free.</p>
+          <pre><code><span class="kw">import</span> os
+os.environ[<span class="str">'HF_HOME'</span>] = <span class="str">'E:/huggingface_cache'</span>
+
+<span class="kw">from</span> langchain_huggingface <span class="kw">import</span> HuggingFaceEmbeddings
+
+embedding = HuggingFaceEmbeddings(model_name=<span class="str">'sentence-transformers/all-MiniLM-L6-v2'</span>)
+vector = embedding.embed_query(<span class="str">'Dhaka is the capital of Bangladesh'</span>)</code></pre>
+          <table class="ref">
+            <tr><th></th><th>OpenAIEmbeddings</th><th>HuggingFaceEmbeddings (local)</th></tr>
+            <tr><td>Runs where</td><td>OpenAI servers</td><td>Your machine</td></tr>
+            <tr><td>Cost</td><td>Per-token, ongoing</td><td>Free after download</td></tr>
+            <tr><td>Dimensions</td><td>Up to 3072, adjustable</td><td>Fixed at 384</td></tr>
+            <tr><td>Quality</td><td>Generally higher</td><td>Lower, often good enough</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">BUG</span><div class="qtext">ModuleNotFoundError: No module named 'sentence_transformers'</div></div>
+        <div class="card-a">
+          <div class="bugfix"><span class="icon">BUG</span><span><code class="inline">HuggingFaceEmbeddings</code> is a wrapper — it relies on a separate <code class="inline">sentence-transformers</code> package under the hood, never installed.</span></div>
+          <pre><code>pip install sentence-transformers</code></pre>
+          <p>Different local codepath than <code class="inline">HuggingFacePipeline</code> (chat) — each <code class="inline">langchain-*</code> integration often needs its own provider-specific library installed separately.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">BUG</span><div class="qtext">Import "sklearn.matrics.pairise" could not be resolved</div></div>
+        <div class="card-a">
+          <div class="bugfix"><span class="icon">TYPO</span><span><code class="inline">matrics</code> → <code class="inline">metrics</code>, and <code class="inline">pairise</code> → <code class="inline">pairwise</code></span></div>
+          <pre><code><span class="kw">from</span> sklearn.metrics.pairwise <span class="kw">import</span> cosine_similarity</code></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-q"><span class="tag">PROJECT</span><div class="qtext">Mini project: given 5 documents, find which one answers a user's question.</div></div>
+        <div class="card-a">
+          <p><strong>Rated 8.5/10</strong> as a beginner project — correct algorithm end-to-end, and the code already anticipated the vector-DB problem before being told about it.</p>
+          <pre><code><span class="cmt">'''
+Steps:
+    1. Generate embedded vectors for all 5 documents.
+    2. Generate embedded vector for the user's question.
+    3. Compare using cosine similarity.
+    4. Highest score = best matching document.
+'''</span>
+
+<span class="kw">from</span> langchain_openai <span class="kw">import</span> OpenAIEmbeddings
+<span class="kw">from</span> sklearn.metrics.pairwise <span class="kw">import</span> cosine_similarity
+
+embedding = OpenAIEmbeddings(model=<span class="str">'text-embedding-3-large'</span>, dimensions=<span class="num">300</span>)
+
+documents = [ <span class="cmt">"...5 cricketer bios..."</span> ]
+query = <span class="str">'tell me about ms dhoni'</span>
+
+doc_embeddings = embedding.embed_documents(documents)
+query_embedding = embedding.embed_query(query)
+
+<span class="cmt"># cosine_similarity() needs 2D input — wrap the single query vector in [ ]</span>
+scores = cosine_similarity([query_embedding], doc_embeddings)[<span class="num">0</span>]
+
+index, score = <span class="fn">sorted</span>(<span class="fn">list</span>(<span class="fn">enumerate</span>(scores)), key=<span class="kw">lambda</span> x: x[<span class="num">1</span>])[-<span class="num">1</span>]
+<span class="fn">print</span>(documents[index], score)</code></pre>
+          <div class="fixed"><span class="icon">RESULT</span><span>Correctly matched "tell me about ms dhoni" → Dhoni's bio. Local MiniLM version scored <strong>0.77</strong> similarity on the same query — same correct answer, lower confidence than the OpenAI version, exactly the API-vs-local quality gap in numbers.</span></div>
+          <p><strong>Own note kept from the original:</strong> re-embedding all documents on every run is costly since nothing is cached — the next real step is a vector database, so documents get embedded once and stored.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ---------- CHEATSHEET ---------- -->
+  <section class="cheatsheet">
+    <div class="cat-path">~/genai/quick-reference</div>
+    <div class="cat-head"><span class="cat-title" style="color:var(--gold);">Quick Reference</span></div>
+    <p class="cat-desc">The commands and fixes reached for most often — for fast revision, not re-reading everything above.</p>
+
+    <div class="cheat-grid">
+      <div class="cheat-card">
+        <h3>venv &amp; installs</h3>
+        <ul>
+          <li><code>python -m venv venv</code></li>
+          <li><code>venv\Scripts\Activate</code> (Windows)</li>
+          <li><code>pip install -r requirements.txt</code></li>
+          <li><code>pip freeze | Set-Content -Encoding utf8 requirements.txt</code></li>
+        </ul>
+      </div>
+      <div class="cheat-card">
+        <h3>.env variable names that matter</h3>
+        <ul>
+          <li><code>OPENAI_API_KEY</code></li>
+          <li><code>ANTHROPIC_API_KEY</code></li>
+          <li><code>HF_TOKEN</code> ← not HUGGINGFACEHUB_ACCESS_TOKEN</li>
+          <li>no quotes, no spaces around <code>=</code></li>
+        </ul>
+      </div>
+      <div class="cheat-card">
+        <h3>Common typo bugs hit</h3>
+        <ul>
+          <li><code>temparature</code> → temperature</li>
+          <li><code>max_new_token</code> → max_new_tokens</li>
+          <li><code>matrics.pairise</code> → metrics.pairwise</li>
+          <li>list items with no commas → auto string concat</li>
+        </ul>
+      </div>
+      <div class="cheat-card">
+        <h3>API vs Local, at a glance</h3>
+        <ul>
+          <li>API: fast to ship, ongoing cost, data leaves machine</li>
+          <li>Local: private, free after setup, needs torch + GPU/CPU</li>
+          <li>Set env vars <em>before</em> importing HF libraries</li>
+          <li><code>embed_query</code> = 1 string · <code>embed_documents</code> = list</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span class="dot">●</span> langchain/models — personal learning &amp; revision notes
+  </footer>
+
+</div>
+
+<script>
+  // scroll-spy nav highlighting
+  const sections = document.querySelectorAll('.category');
+  const links = document.querySelectorAll('.nav-links a');
+  const map = {ecosystem:'eco', chatmodels:'chat', embeddings:'embed'};
+
+  function onScroll(){
+    let current = '';
+    sections.forEach(sec=>{
+      const rect = sec.getBoundingClientRect();
+      if(rect.top <= 140 && rect.bottom >= 140){ current = sec.id; }
+    });
+    links.forEach(a=>{
+      a.classList.remove('active-eco','active-chat','active-embed');
+      if(a.getAttribute('href') === '#' + current){
+        a.classList.add('active-' + map[current]);
+      }
+    });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+</script>
+
+</body>
+</html>

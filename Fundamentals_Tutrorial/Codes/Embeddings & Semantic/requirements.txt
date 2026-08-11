@@ -1,0 +1,7 @@
+scikit-learn
+matplotlib
+gensim
+
+python-dotenv
+google-genai
+openai
