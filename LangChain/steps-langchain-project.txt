@@ -12,3 +12,21 @@ Open it in VS Code
 5.Verify LangChain installation
 
 A couple of notes for when you actually run this: step 4's activation command (venv\Scripts\Activate) is Windows-specific — on macOS/Linux it'd be source venv/bin/activate instead. And step 5 assumes you'll add langchain (and whatever else you need, like langchain-openai or langchain-anthropic) into that requirements.txt before step 6.
+
+
+
+# deactivate first
+deactivate
+
+# delete the old broken venv
+Remove-Item -Recurse -Force .\01-models\venv
+
+# create a new one in the correct location
+cd 01-models
+python -m venv venv
+
+# activate it
+.\venv\Scripts\Activate.ps1
+
+# reinstall everything
+pip install -r requirements.txt
